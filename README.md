@@ -20,6 +20,7 @@
 ## Структура
 
 ```
+├── releases/           # Готовые сборки (APK для Android, IPA для iOS)
 ├── app.py              # Flask приложение, все роуты
 ├── models.py           # Модели БД
 ├── config.py           # Конфиг (читает из .env)
