@@ -1,0 +1,57 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: rpza_sredi_navoza
+
+      - name: Generate Flutter iOS files
+        run: flutter build ios --release --no-codesign || true
+        working-directory: rpza_sredi_navoza
+        continue-on-error: true
+
+      - name: Build with xcodebuild (no signing)
+        run: |
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/DerivedData \
+            build
+        working-directory: rpza_sredi_navoza
+
+      - name: Create IPA
+        run: |
+          APP_PATH=$(find build/DerivedData -name "Runner.app" -not -path "*/simulator/*" | head -1)
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r NeoSync.ipa Payload
+        working-directory: rpza_sredi_navoza
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeoSync-iOS
+          path: rpza_sredi_navoza/NeoSync.ipa
+          retention-days: 7
